@@ -59,6 +59,20 @@
 
 ### Fixed
 
+- **payload-rules:** saved payload rules now survive a server restart. When no
+  in-memory override is set (fresh process before the boot hook ran, or a
+  separate module instance in the standalone build), `getPayloadRulesConfig`
+  now reads the DB-persisted rules (the source of truth) before the file config,
+  instead of silently returning the empty file default. (#2986)
+- **models/custom:** custom models can now carry a per-model `targetFormat`
+  override (e.g. an opencode-go custom model that must use the Anthropic Messages
+  shape). Previously custom models always routed as OpenAI-compatible because
+  `targetFormat` was neither persisted nor consulted at routing time. Threaded
+  through `addCustomModel`/`replaceCustomModels`/`updateCustomModel`, the API
+  schema/route, `getModelInfo`, and chatCore's targetFormat resolution. (#2905)
+- **providers/pollinations:** route to `gen.pollinations.ai/v1` instead of the
+  retired `text.pollinations.ai` host, which now returns `404 "legacy API"` for
+  all models. The gen gateway is the current OpenAI-compatible endpoint. (#2987)
 - **executors/codex:** drop the CLI-injected `image_generation` hosted tool for
   free-plan Codex accounts (`workspacePlanType === "free"`), which can't run it
   server-side and would otherwise get an upstream 400. Paid plans keep it.
@@ -70,7 +84,7 @@
   (previously only the request-log viewer resolved it). (#2968)
 - **docker:** the standalone launcher (Docker `CMD`) now honors
   `OMNIROUTE_MEMORY_MB` (default 512, clamped [64, 16384]) and overrides the
-  baked `--max-old-space-size=256`, fixing random OOM crashes under load / with
+  image `NODE_OPTIONS` fallback, fixing random OOM crashes under load / with
   large SQLite DBs. Previously only `omniroute serve` honored the knob. (#2939)
 - **docker:** add a `web` compose profile (`omniroute-web`, target `runner-web`,
   image `omniroute:web`) so web-cookie providers (gemini-web, claude-web,
